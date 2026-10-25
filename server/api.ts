@@ -9,7 +9,7 @@ import { lc } from "./content";
 import { L, currentLang, langOf, withLang } from "./i18n";
 import { INTEREST_IDS } from "./interests";
 import { notify } from "./notify";
-import { enabledIds, groundTruth } from "./bugs";
+import { enabledIds, groundTruth, isOn } from "./bugs";
 import { HttpError, charCount, conflict, forbidden, intParam, invalid, json, notFound, readJson, str, type Req, type Res } from "./http";
 import { challengeView, completeOtpSignup, startOtp, usernameError, verifyOtp, type Channel } from "./otp";
 import { COMMENT_SORTS, POST_SORTS, TOP_WINDOWS, sortComments, sortPosts, type CommentSort, type PostSort } from "./ranking";
@@ -470,10 +470,11 @@ async function route(req: Req, res: Res, url: URL): Promise<void> {
     if (method === "POST") {
       const user = requireUser(req);
       if (post.deleted || post.removed) conflict("gone", L("삭제된 글에는 댓글을 달 수 없어요."));
-      assertNotBanned(getCommunity(post.community), user);
       const body = await readJson(req);
       const text = str(body.body).trim();
       const parentId = str(body.parentId) || null;
+      // 결함 F4: 정지 검사를 새 댓글에만 하고 답글(parentId 있음)에는 하지 않는다
+      if (!(isOn("F4") && parentId)) assertNotBanned(getCommunity(post.community), user);
       const fields: Record<string, string> = {};
       if (!text) fields.body = L("댓글 내용을 입력해 주세요.");
       else if (charCount(text) > 10_000) fields.body = L("댓글은 10,000자까지 쓸 수 있어요.");
@@ -663,7 +664,9 @@ function listPosts(url: URL, viewer: User | null) {
     if (!canViewCommunity(getCommunity(communityName), viewer)) forbidden(L("비공개 커뮤니티의 글이에요. 회원만 볼 수 있어요."));
     posts = posts.filter((p) => p.community === communityName);
   } else {
-    const joined = viewer ? new Set([...db.communities.keys()].filter((name) => db.members.get(name)?.has(viewer.id))) : new Set<string>();
+    let joined = viewer ? new Set([...db.communities.keys()].filter((name) => db.members.get(name)?.has(viewer.id))) : new Set<string>();
+    // 결함 F1: 홈 피드는 로그인할 때 기억한 가입 목록을 다음 로그인까지 계속 쓴다 (탈퇴 · 가입이 반영되지 않음)
+    if (isOn("F1") && viewer && feed === "home") joined = db.homeJoined.get(viewer.id) ?? joined;
     // 홈은 가입한 커뮤니티 글. 로그인하지 않았거나 가입한 곳이 없으면 인기 글을 보여 준다.
     const asPopular = feed === "popular" || (feed === "home" && joined.size === 0);
     if (feed === "home" && joined.size > 0) posts = posts.filter((p) => joined.has(p.community));

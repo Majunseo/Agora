@@ -7,13 +7,32 @@ import { useEffect, useState } from "react";
  */
 
 let cache: Promise<string[]> | null = null;
+/** 받아 온 뒤의 켜진 목록. 훅을 쓸 수 없는 곳(src/lib/*.ts)에서 bugOn() 으로 읽는다. */
+const loaded = new Set<string>();
+export const BUGS_EVENT = "agora:bugs";
 
-function loadEnabled(): Promise<string[]> {
+export function loadEnabled(): Promise<string[]> {
   cache ??= fetch("/api/bugs")
     .then((r) => r.json())
     .then((d: { enabled?: string[] }) => d.enabled ?? [])
-    .catch(() => []);
+    .catch(() => [] as string[])
+    .then((list) => {
+      list.forEach((id) => loaded.add(id));
+      window.dispatchEvent(new Event(BUGS_EVENT));
+      return list;
+    });
   return cache;
+}
+
+/** 훅 밖에서 쓰는 토글. 아직 못 받았으면 false (정상 동작) */
+export const bugOn = (id: string): boolean => loaded.has(id);
+
+let ready = false;
+void Promise.resolve().then(() => loadEnabled().then(() => (ready = true)));
+/** 토글을 받았으면 바로, 아직이면 받은 뒤에 fn 을 부른다. */
+export function afterBugs(fn: () => void): void {
+  if (ready) fn();
+  else void loadEnabled().then(fn);
 }
 
 export function useEnabledBugs(): string[] {

@@ -1,3 +1,4 @@
+import { isOn } from "./bugs";
 import { db, nextNotificationId } from "./store";
 import type { Notification } from "./types";
 
@@ -11,7 +12,9 @@ export function notify(n: NewNotification): void {
   const user = db.users.get(n.userId);
   if (!user || n.actorId === n.userId) return;
   const isReply = n.type === "post_reply" || n.type === "comment_reply";
-  if (isReply && !user.prefs.replyNotifications) return;
+  // 결함 F3: '답글 알림' 을 꺼도 '내 글에 달린 댓글' 만 멈추고 '내 댓글에 달린 답글' 은 계속 보낸다
+  const muted = isOn("F3") ? n.type === "post_reply" : isReply;
+  if (muted && !user.prefs.replyNotifications) return;
   if (!isReply && !user.prefs.modNotifications) return;
   const id = nextNotificationId();
   const chars = [...n.text];
