@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { clsx } from "clsx";
 import { ApiError, api, errorMessage } from "@/lib/api";
+import { useBug } from "@/lib/bugs";
 import type { ReportReason } from "@/lib/types";
 import { Modal } from "./Modal";
 
@@ -47,6 +48,8 @@ function ReportForm({ target, rules, onClose }: { target: { type: "post" | "comm
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const isPost = target.type === "post";
+  // 결함 U1: 제목을 정할 때 댓글 구분을 보지 않아 늘 '글 신고하기' 로 나온다 (신고 자체는 정상)
+  const bugU1 = useBug("U1");
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,7 +81,7 @@ function ReportForm({ target, rules, onClose }: { target: { type: "post" | "comm
   const detailLength = [...detail].length;
   return (
     <form onSubmit={submit} noValidate>
-      <h2 id="report-title" className="text-xl font-bold">{t(isPost ? "글 신고하기" : "댓글 신고하기")}</h2>
+      <h2 id="report-title" className="text-xl font-bold">{t(isPost || bugU1 ? "글 신고하기" : "댓글 신고하기")}</h2>
       <p className="mt-1 text-sm text-muted">{t("어떤 문제가 있나요? 신고한 사람은 작성자에게 알려지지 않아요.")}</p>
 
       <fieldset className="mt-5" aria-describedby={errors.reason ? `${id}-reason-error` : undefined}>

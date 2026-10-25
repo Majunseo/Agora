@@ -6,12 +6,14 @@ import { NotificationItem } from "@/components/NotificationItem";
 import { api, errorMessage } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { useAsync } from "@/lib/useAsync";
+import { useBug } from "@/lib/bugs";
 import type { AppNotification, Unread } from "@/lib/types";
 
 /** /notifications  알림 전체. ?filter=unread 면 읽지 않은 것만 */
 export function NotificationsPage() {
   const t = useT();
   const { refresh } = useSession();
+  const bugU2 = useBug("U2");
   const [params, setParams] = useSearchParams();
   const unreadOnly = params.get("filter") === "unread";
   const { data, error, reload, setData } = useAsync(
@@ -22,7 +24,8 @@ export function NotificationsPage() {
   const markRead = async (ids?: string[]) => {
     const r = await api.post<{ unread: Unread }>("/api/notifications/read", ids ? { ids } : {});
     setData((prev) => prev && { unread: r.unread, items: prev.items.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)) });
-    void refresh();
+    // 결함 U2: 읽음 처리 뒤 머리글 숫자를 다시 불러오지 않는다
+    if (!bugU2) void refresh();
     if (unreadOnly && !ids) reload();
   };
 

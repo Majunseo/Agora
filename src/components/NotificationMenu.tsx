@@ -6,6 +6,7 @@ import { tr } from "@/i18n";
 import { api, errorMessage } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { useDismiss } from "@/lib/useDismiss";
+import { useBug } from "@/lib/bugs";
 import type { AppNotification, Unread } from "@/lib/types";
 import { NotificationItem } from "./NotificationItem";
 
@@ -25,6 +26,7 @@ export function Badge({ count, label }: { count: number; label: string }) {
 export function NotificationMenu() {
   const t = useT();
   const { user, refresh } = useSession();
+  const bugU2 = useBug("U2");
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,8 @@ export function NotificationMenu() {
   const markRead = async (ids?: string[]) => {
     await api.post<{ unread: Unread }>("/api/notifications/read", ids ? { ids } : {});
     setItems((prev) => prev?.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)) ?? null);
-    void refresh();
+    // 결함 U2: 읽음 처리 뒤 머리글 숫자를 다시 불러오지 않는다
+    if (!bugU2) void refresh();
   };
 
   return (
