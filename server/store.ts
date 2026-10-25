@@ -35,6 +35,8 @@ export const db = {
   drafts: new Map<string, Draft>(),
   joinRequests: new Map<string, JoinRequest>(),
   invites: new Map<string, Invite>(),
+  /** 결함 F1: 사용자 ID → 로그인할 때의 가입 목록 */
+  homeJoined: new Map<string, Set<string>>(),
   seq: { user: 0, post: 0, comment: 0, upload: 0, notification: 0, message: 0, report: 0, draft: 0, joinRequest: 0, invite: 0 },
 };
 
@@ -59,6 +61,7 @@ export function clearAll(): void {
   db.drafts.clear();
   db.joinRequests.clear();
   db.invites.clear();
+  db.homeJoined.clear();
   db.seq = { user: 0, post: 0, comment: 0, upload: 0, notification: 0, message: 0, report: 0, draft: 0, joinRequest: 0, invite: 0 };
 }
 
