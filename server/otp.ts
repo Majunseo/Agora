@@ -1,4 +1,5 @@
 import { randomBytes, randomInt } from "crypto";
+import { isOn } from "./bugs";
 import { L } from "./i18n";
 import { HttpError } from "./http";
 import { DEFAULT_PREFS, db, findUserByContact, findUserByName, nextUserId } from "./store";
@@ -32,7 +33,8 @@ export function usernameError(name: string): string | null {
 /** 휴대전화는 숫자만(01012345678), 이메일은 소문자로 맞춘다. 형식이 틀리면 null. */
 export function normalizeTarget(channel: Channel, raw: string): string | null {
   if (channel === "phone") {
-    const digits = raw.replace(/[\s-]/g, "");
+    // 결함 V1: 하이픈을 떼지 않고 검사해 010-1234-5678 형식을 거부한다
+    const digits = isOn("V1") ? raw.trim() : raw.replace(/[\s-]/g, "");
     return /^01[016789]\d{7,8}$/.test(digits) ? digits : null;
   }
   const email = raw.trim().toLowerCase();

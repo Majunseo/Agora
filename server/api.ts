@@ -82,6 +82,8 @@ function voteDir(value: unknown): 1 | 0 | -1 {
 }
 
 const URL_PATTERN = /^https?:\/\/[^\s/]+\.[^\s]+$/;
+/** 결함 V2: 영어 · 숫자 · 일부 기호만 받는 주소 검사 (한글이 든 주소를 거부한다) */
+const ASCII_URL_PATTERN = /^https?:\/\/[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?::\d+)?(?:[/?#][A-Za-z0-9\-._~%!$&'()*+,;=:@/?#]*)?$/;
 export const IMAGES_MAX = 8;
 /** 인기 피드에 오르는 최소 점수 */
 const POPULAR_MIN_SCORE = 100;
@@ -356,7 +358,7 @@ async function route(req: Req, res: Res, url: URL): Promise<void> {
     if (kind !== "text" && kind !== "link" && kind !== "image" && kind !== "video") fields.kind = L("text, link, image, video 중 하나여야 해요.");
     if (body.spoiler !== undefined && typeof body.spoiler !== "boolean") fields.spoiler = L("true 또는 false 여야 해요.");
     if (kind === "link" && !link) fields.url = L("링크 주소를 넣어 주세요.");
-    else if (link && !URL_PATTERN.test(link)) fields.url = L("http:// 또는 https:// 로 시작하는 주소를 넣어 주세요.");
+    else if (link && !(isOn("V2") ? ASCII_URL_PATTERN : URL_PATTERN).test(link)) fields.url = L("http:// 또는 https:// 로 시작하는 주소를 넣어 주세요.");
     const images = kind === "image" ? parseImages(body.images, user, title, fields) : [];
     const videoUpload = kind === "video" ? ownUpload(str(body.video), user, "video") : null;
     if (kind === "video" && !videoUpload) fields.video = L("동영상을 찾을 수 없어요. 다시 올려 주세요.");
