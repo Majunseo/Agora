@@ -7,17 +7,20 @@ import { useEffect, useState } from "react";
  */
 
 let cache: Promise<string[]> | null = null;
+/** 한 번 받아 온 목록. 나중에 그려지는 화면은 첫 렌더부터 이 값을 쓴다. */
+let resolved: string[] | null = null;
 
 function loadEnabled(): Promise<string[]> {
   cache ??= fetch("/api/bugs")
     .then((r) => r.json())
     .then((d: { enabled?: string[] }) => d.enabled ?? [])
-    .catch(() => []);
+    .catch(() => [] as string[])
+    .then((list) => (resolved = list));
   return cache;
 }
 
 export function useEnabledBugs(): string[] {
-  const [list, setList] = useState<string[]>([]);
+  const [list, setList] = useState<string[]>(() => resolved ?? []);
   useEffect(() => {
     let alive = true;
     loadEnabled().then((l) => alive && setList(l));

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useT } from "@/i18n";
 import { api, errorMessage } from "@/lib/api";
+import { useBug } from "@/lib/bugs";
 import { useCommunities } from "@/lib/communities";
 import type { Listing, Post } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
@@ -31,6 +32,8 @@ export function Feed({ feed, community, emptyAction, view = "card", defaults = F
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 결함 N1: 다시 불러올 조건에서 커뮤니티가 빠져, 커뮤니티 화면 사이를 옮겨도 목록을 새로 받지 않는다
+  const bugN1 = useBug("N1");
 
   const query = (offset: number) => {
     const q = new URLSearchParams({ sort, t: range, offset: String(offset), limit: "10" });
@@ -62,7 +65,7 @@ export function Feed({ feed, community, emptyAction, view = "card", defaults = F
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feed, community, sort, range, flair]);
+  }, [feed, bugN1 ? null : community, sort, range, flair]);
 
   const loadMore = async () => {
     setLoading(true);
