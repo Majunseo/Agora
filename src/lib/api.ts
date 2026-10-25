@@ -18,6 +18,16 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 결함 N2: 마지막으로 성공한 GET 응답. 결함이 켜져 있으면 '로그인이 필요해요'(401) 대신 이것을 돌려준다.
+ * 기록은 늘 하고(화면 순서상 결함 토글보다 첫 요청이 먼저 갈 수 있다), 꺼내 쓰는 것만 결함일 때 한다.
+ */
+const lastGood = new Map<string, unknown>();
+let staleOnUnauthorized = false;
+export function setStaleOnUnauthorized(on: boolean): void {
+  staleOnUnauthorized = on;
+}
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -26,6 +36,12 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
+  if (method === "GET" && res.ok) {
+    lastGood.delete(url);
+    lastGood.set(url, data);
+    if (lastGood.size > 50) lastGood.delete(lastGood.keys().next().value as string);
+  }
+  if (!res.ok && res.status === 401 && method === "GET" && staleOnUnauthorized && lastGood.has(url)) return lastGood.get(url) as T;
   if (!res.ok) throw new ApiError(res.status, data);
   return data as T;
 }

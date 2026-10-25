@@ -10,6 +10,8 @@ let cache: Promise<string[]> | null = null;
 /** 받아 온 뒤의 켜진 목록. 훅을 쓸 수 없는 곳(src/lib/*.ts)에서 bugOn() 으로 읽는다. */
 const loaded = new Set<string>();
 export const BUGS_EVENT = "agora:bugs";
+/** 한 번 받아 온 목록. 나중에 그려지는 화면은 첫 렌더부터 이 값을 쓴다. */
+let resolved: string[] | null = null;
 
 export function loadEnabled(): Promise<string[]> {
   cache ??= fetch("/api/bugs")
@@ -17,6 +19,7 @@ export function loadEnabled(): Promise<string[]> {
     .then((d: { enabled?: string[] }) => d.enabled ?? [])
     .catch(() => [] as string[])
     .then((list) => {
+      resolved = list;
       list.forEach((id) => loaded.add(id));
       window.dispatchEvent(new Event(BUGS_EVENT));
       return list;
@@ -36,7 +39,7 @@ export function afterBugs(fn: () => void): void {
 }
 
 export function useEnabledBugs(): string[] {
-  const [list, setList] = useState<string[]>([]);
+  const [list, setList] = useState<string[]>(() => resolved ?? []);
   useEffect(() => {
     let alive = true;
     loadEnabled().then((l) => alive && setList(l));
